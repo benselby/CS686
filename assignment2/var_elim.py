@@ -145,19 +145,44 @@ def main():
                     {'+I~F~O':0.001, '+I~F+O':0.01, '+I+F~O':0.011, '+I+F+O':0.02, '~I~F~O':0.999, '~I~F+O':0.99, '~I+F~O':0.989, '~I+F+O':0.98},
                     {'+O':0.7, '~O':0.3},
                     {'+C+O':0.1, '+C~O':0.001, '~C+O':0.99, '~C~O':0.999} ]
-    print "P(F) given no evidence (prior probability):"
+#    print "P(F) given no evidence (prior probability):"
+#    query = 'F'
+#    evidence = []
+#    hidden_vars = list(order)
+#    hidden_vars.remove(query)
+#    print inference(factor_list, query, hidden_vars , evidence)
+#
+#    print ''
+#    print "P(F|f,~I,C):"
+#    query = 'F'
+#    evidence = ['+f', '~I', '+C']
+#    hidden_vars = ['T', 'O']
+#    print inference(factor_list, query, hidden_vars , evidence)
+#    
+#    print ''
+#    print "P(F|T,f,~I,C):"
+#    query = 'F'
+#    evidence = ['+T', '+f', '~I', '+C']
+#    hidden_vars = ['O']
+#    print inference(factor_list, query, hidden_vars , evidence)
+
+    print "P(F|I):"
     query = 'F'
-    evidence = []
-    hidden_vars = list(order)
-    hidden_vars.remove(query)
+    evidence = ['+I']
+    hidden_vars = ['T','f','O','C']
     print inference(factor_list, query, hidden_vars , evidence)
 
-    print ''
-    print "P(F|f,~I,C) given no evidence (prior probability):"
+    print "P(F|I,C):"
     query = 'F'
-    evidence = ['+f', '~I', '+C']
-    hidden_vars = ['T', 'O']
+    evidence = ['+I', '+C']
+    hidden_vars = ['T','f','O']
     print inference(factor_list, query, hidden_vars , evidence)
-    
+
+    print "P(F|T,f,I,C):"
+    query = 'F'
+    evidence = ['+T', '+f', '+I', '+C']
+    hidden_vars = ['O']
+    print inference(factor_list, query, hidden_vars , evidence)
+
 if __name__ == "__main__":
     main()
