@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
-# Variable elimination algorithm for Bayesian networks
-# Implemented with test cases for a credit card faurd problem
+# Extension of the Bayesian network to a decision network
+# Includes test cases for the credit card fraud examplee
 
 def restrict(factor, variable):
     restricted_factor = {}
@@ -148,47 +148,30 @@ def main():
                     {'+F+T':0.01, '+F~T':0.004, '~F+T':0.99, '~F~T':0.996},
                     {'+I~F~O':0.001, '+I~F+O':0.01, '+I+F~O':0.011, '+I+F+O':0.02, '~I~F~O':0.999, '~I~F+O':0.99, '~I+F~O':0.989, '~I+F+O':0.98},
                     {'+O':0.7, '~O':0.3},
-                    {'+C+O':0.1, '+C~O':0.001, '~C+O':0.99, '~C~O':0.999} ]
-    print "P(F) given no evidence (prior probability):"
-    query = 'F'
-    evidence = []
-    hidden_vars = list(order)
-    hidden_vars.remove(query)
-    print inference(factor_list, query, hidden_vars , evidence)
+                    {'+C+O':0.1, '+C~O':0.001, '~C+O':0.99, '~C~O':0.999}]
 
-    print ''
-    print "P(F|f,~I,C):"
+    utility_factor = {'+F+B':0, '+F~B':-1000, '~F+B':-10, '~F~B':5}  
+    print "EU(B|F,~I,CRP)" 
     query = 'F'
     evidence = ['+f', '~I', '+C']
     hidden_vars = ['T', 'O']
-    print inference(factor_list, query, hidden_vars , evidence)
+    bayes_output = inference(factor_list, query, hidden_vars, evidence)
+    print bayes_output
     
-    print ''
-    print "P(F|T,f,~I,C):"
+    product = multiply( utility_factor, bayes_output )
+    expected_util = sum_out( product, 'F')
+    print "EU(B|F,~I,CRP):", expected_util
+   
+    print "EU(B|~I,CRP, FP, T)" 
     query = 'F'
-    evidence = ['+T', '+f', '~I', '+C']
+    evidence = ['~T', '+f', '~I', '+C']
     hidden_vars = ['O']
-    print inference(factor_list, query, hidden_vars , evidence)
+    bayes_output = inference(factor_list, query, hidden_vars, evidence)
+    print bayes_output
+                                                                             
+    product = multiply( utility_factor, bayes_output )
+    expected_util = sum_out( product, 'F')
+    print "EU(B|F,~I,CRP,~T):", expected_util
 
-#    print "P(F|I):"
-#    query = 'F'
-#    evidence = ['+I']
-#    hidden_vars = ['T','f','O','C']
-#    output = inference(factor_list, query, hidden_vars , evidence)
-#    print "P(F|I):", output 
-#
-#    print "P(F|I,C):"
-#    query = 'F'
-#    evidence = ['+I', '+C']
-#    hidden_vars = ['T','f','O']
-#    output = inference(factor_list, query, hidden_vars , evidence)
-#    print "P(F|I,C):", output 
-#
-#    print "P(F|T,f,I,C):"
-#    query = 'F'
-#    evidence = ['+T', '+f', '+I', '+C']
-#    hidden_vars = ['O']
-#    output = inference(factor_list, query, hidden_vars , evidence)
-#    print "P(F|T,f,I,C):", output 
 if __name__ == "__main__":
     main()
