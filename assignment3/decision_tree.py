@@ -6,26 +6,27 @@
 
 def main():
     # First load all the training and test data and labels
+    [words, train_data, train_labels, test_data, test_labels] = load_data_and_labels()
+
+def load_data_and_labels():
+    print "Loading words, training and testing data..."
     words = []
     with open('words.txt', 'r') as f:
         for line in f:
             words.append( line.split()[0] )
 
-    #print( words )
-    print( len(words) )
+    print "No. of words:", len(words) 
     
     train_data = []
     with open('trainData.txt', 'r') as f:
         for line in f:
             train_data.append( line.split() )
-    #print train_data
-    print( len(train_data) )
     
     train_labels = []
-    with open('trainLabel', 'r') as f:
+    with open('trainLabel.txt', 'r') as f:
         for line in f:
             train_labels.append( line.split() )
-    print( "No. of training documents:", len(train_labels) )
+    print "No. of training documents:", len(train_labels) 
     
     test_data = []
     with open('testData.txt', 'r') as f:
@@ -33,12 +34,12 @@ def main():
             test_data.append( line.split() )
     
     test_labels = []
-    with open('testLabel', 'r') as f:
+    with open('testLabel.txt', 'r') as f:
         for line in f:
             test_labels.append( line.split() )
-
-def load_data_and_labels():
-    pass
+    print "No. of test documents:", len(test_labels) 
+      
+    return [words, train_data, train_labels, test_data, test_labels]
 
 if __name__ == "__main__":
     main()
