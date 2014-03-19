@@ -5,6 +5,7 @@
 # Ben Selby, March 2014
 
 import math
+import csv
 
 i_nodes = 1
 
@@ -50,6 +51,17 @@ class Node:
             return True
         else:
             return False
+    
+    def print_tree(self, prefix, words):
+        if type(self.value) is str:
+            print prefix, self.value
+        else:
+            print prefix, words[self.value]
+        print "Info Gain:", self.info_gain 
+        if self.yes_child and self.no_child:
+            self.yes_child.print_tree('%s yes child:'%words[self.value], words)
+            self.no_child.print_tree('%s no child:'%words[self.value], words)
+
 
 def main():
     # First load all the training and test data and labels
@@ -58,13 +70,13 @@ def main():
     train_data_sparse = sparsify( words, train_data, train_labels )
     test_data_sparse = sparsify( words, test_data, test_labels )
     # Build a decision tree using information gain:
-    max_nodes = 100
+    max_nodes = 10
     used_words = []
-    #tree = decision_tree_learning( train_data_sparse, train_labels, used_words, max_nodes  )
-    tree = dtl_iterative(train_data_sparse, train_labels, max_nodes)
-    print "Training percent correct:", test_decision_tree( tree, train_data_sparse, train_labels )
-    print "Test percent correct:", test_decision_tree( tree, test_data_sparse, test_labels )
 
+    tree = dtl_iterative(train_data_sparse, train_labels, max_nodes, test_data_sparse, test_labels, words )
+    print "Final training percent correct:", test_decision_tree( tree, train_data_sparse, train_labels )
+    print "Final test percent correct:", test_decision_tree( tree, test_data_sparse, test_labels )
+    tree.print_tree('', words)
 # returns the accuracy (% of documents correctly classified) of a tree given
 # some data and labes
 def test_decision_tree(tree, sparse_data, labels):
@@ -90,8 +102,7 @@ def classify( root, doc ):
     return node.value
 
 # Implements an iterative priority queue DTL algorithm
-def dtl_iterative(sparse_data, labels, max_nodes):
-    
+def dtl_iterative(sparse_data, labels, max_nodes, test_data, test_labels, words):
     # first, get the root node:
     info_list = []
     for word_index in range(len(sparse_data[0])):
@@ -100,6 +111,9 @@ def dtl_iterative(sparse_data, labels, max_nodes):
     best_word = info_list.index( max(info_list) )
      
     root = Node(best_word)
+    print "Selected word:", words[best_word]
+    print "info gain:", max(info_list)
+    
     yes_docs = []
     yes_labels = []
     no_docs = []
@@ -119,10 +133,18 @@ def dtl_iterative(sparse_data, labels, max_nodes):
     
     root.yes_child.add_docs_and_labels( yes_docs, yes_labels )
     root.no_child.add_docs_and_labels( no_docs, no_labels )
-
+    root.info_gain = max(info_list)
     n_nodes = 1
+    test_percent = []
+    train_percent = []
     while n_nodes < max_nodes:
-        print "adding node %d of %d" % (n_nodes+1, max_nodes)
+        print "testing with %d nodes... " % n_nodes
+        test_percent.append(test_decision_tree(root, test_data, test_labels))
+        train_percent.append(test_decision_tree(root, sparse_data, labels))
+        print "classified %f percent training documents correctly" % train_percent[n_nodes-1]
+        print "classified %f percent training documents correctly" % test_percent[n_nodes-1]
+        print "adding node %d of %d" % (n_nodes+1, max_nodes)       
+        
         leaves = root.get_leaves()
         for leaf in leaves:
             # check if we've already calculated the gain for the leaf
@@ -131,7 +153,9 @@ def dtl_iterative(sparse_data, labels, max_nodes):
                 # all words and then take the max
                 info_list = []
                 for i in range(len(sparse_data[0])):
-                    info_list.append( information_gain( i, leaf.docs, leaf.labels ) )
+                    # find the information gain or info gain times number of documents for each leaf
+                    info_list.append( information_gain( i, leaf.docs, leaf.labels )*len(leaf.docs) )
+                    #info_list.append( information_gain( i, leaf.docs, leaf.labels ) )
                 leaf.info_gain = max(info_list) 
                 leaf.best_word_index = info_list.index( max(info_list) )
         leaves_gain = [leaf.info_gain for leaf in leaves]
@@ -139,6 +163,10 @@ def dtl_iterative(sparse_data, labels, max_nodes):
         best_leaf = leaves[leaves_gain.index( max(leaves_gain) )]
         # expand the best leaf 
         best_leaf.value = best_leaf.best_word_index
+        
+        print "Selected word:", words[best_leaf.value]
+        print "info gain:", best_leaf.info_gain
+        
 
         yes_docs = []
         yes_labels = []
@@ -160,6 +188,12 @@ def dtl_iterative(sparse_data, labels, max_nodes):
         best_leaf.yes_child.add_docs_and_labels( yes_docs, yes_labels )
         best_leaf.no_child.add_docs_and_labels( no_docs, no_labels )
         n_nodes = n_nodes+1
+    # write the percentages correct to a .csv
+   # with open('results_times_docs.csv', 'wb') as f:
+   #     writer = csv.writer(f)
+   #     writer.writerows([train_percent])
+   #     writer.writerows([test_percent])
+    
     return root
 
 def path_plurality_value(word_index, sparse_data, labels, value):
@@ -176,73 +210,6 @@ def path_plurality_value(word_index, sparse_data, labels, value):
     else:
         return '2'
     
-
-# A recursive priority queue implementation of DTL - uses information gain
-# to rank the attributes 
-# Returns an ordered list of decisions based on the provided training data
-def decision_tree_learning( train_data_sparse, train_labels, used_words, max_nodes ):
-    global i_nodes
-    print "Adding node %d of %d" %( i_nodes, max_nodes)
-    # check to see if we've hit the maximum number of nodes:
-    if i_nodes >= max_nodes:
-        return Node( plurality_value( train_labels) ) 
-    if all_labels_same( train_labels ):
-        return Node( train_labels[0] )
-
-    else:
-        # we are going to add a node, so increment the node count:
-        i_nodes = i_nodes+1
-        
-        # rank all the words by importance:
-        importance_list = []
-        for word_index in range(len(train_data_sparse[0])):
-            if word_index not in used_words:
-                importance_list.append( information_gain( word_index, train_data_sparse, train_labels ) )
-        #for k in range(10):
-        #    print importance_list[k]
-        #print len(importance_list)
-        best_word_index = importance_list.index( max( importance_list ) )
-        print "Best word:", best_word_index
-        used_words.append( best_word_index )
-        new_node = Node( best_word_index )
-        for value in [0,1]:
-            # divide the training set documents based on whether they contain the word
-            new_train_data = []
-            new_train_labels = []
-            for i in range(len(train_data_sparse)):
-                doc = train_data_sparse[i]
-
-                # check to see if the selected word is in the document
-                if doc[best_word_index] == value:
-                    new_train_data.append( doc )
-                    new_train_labels.append( train_labels[i] )
-            
-            child_node = decision_tree_learning( new_train_data, new_train_labels, used_words, max_nodes )
-            if value:
-                new_node.add_yes_child( child_node )
-            else:
-                new_node.add_no_child( child_node )
-        return new_node   
-
-
-# Returns the most common occuring document type in a list of labels:
-def plurality_value( labels ):
-    p = labels.count('1')
-    n = len(labels) - p
-
-    if p > n:
-        return '1'
-    else:
-        return '2'
-
-
-# scans the label list to see if they're all the same classification
-def all_labels_same( labels ):
-    for label in labels:
-        if label != labels[0]:
-            return False
-    return True
-
 # returns the entropy of a boolean random variable that is true with the probability q
 # q must be a floating point value
 def entropy(q):
